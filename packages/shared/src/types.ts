@@ -4,17 +4,40 @@ export type TaskStatus = 'pending' | 'confirmed' | 'running' | 'completed' | 'fa
 export interface Tool {
   id: string
   name: string
-  status: ToolStatus
-  description: string
+  type: string
+  status: string
+  description?: string
+  config?: Record<string, unknown>
+  lastSeenAt?: string
+  createdAt: string
 }
 
 export interface Task {
   id: string
   prompt: string
-  suggestedTool: string
+  suggestedTool?: string
+  confirmedTool?: string
   status: TaskStatus
   result?: string
+  error?: string
+  tokensUsed: number
+  durationMs: number
   createdAt: string
+  completedAt?: string
+}
+
+export interface TaskHistory {
+  id: string
+  taskId: string
+  event: string
+  data?: string
+  createdAt: string
+}
+
+export interface UserPreference {
+  key: string
+  value: string
+  updatedAt: string
 }
 
 export interface RoutingSuggestion {

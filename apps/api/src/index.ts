@@ -1,6 +1,8 @@
 import Fastify from 'fastify'
 import cors from '@fastify/cors'
 import websocket from '@fastify/websocket'
+import { initDb } from './db/index.js'
+import { seedDatabase } from './db/seed.js'
 
 const server = Fastify({
   logger: true,
@@ -36,6 +38,10 @@ server.register(async function (fastify) {
 // Start server
 const start = async (): Promise<void> => {
   try {
+    // Initialize database
+    initDb()
+    seedDatabase()
+
     await server.listen({ port: 3001, host: '0.0.0.0' })
     console.log('🚀 API server running on http://localhost:3001')
   } catch (err) {
