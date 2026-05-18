@@ -1,120 +1,54 @@
-import React from 'react'
-import {
-  View,
-  Text,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  SafeAreaView,
-  StatusBar,
-} from 'react-native'
+import React from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
+import { Text } from 'react-native';
+import { ChatScreen } from './src/screens/ChatScreen';
+import { StatusScreen } from './src/screens/StatusScreen';
+import { theme } from './src/theme';
 
-export default function App(): React.JSX.Element {
-  const [input, setInput] = React.useState('')
+const Tab = createBottomTabNavigator();
 
+export default function App() {
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#0a0a0a" />
-
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>⚡ AI Command Center</Text>
-        <Text style={styles.headerSubtitle}>Your AI fleet, one interface</Text>
-      </View>
-
-      {/* Chat area placeholder */}
-      <View style={styles.chatArea}>
-        <Text style={styles.placeholder}>
-          Describe your task and I'll route it to the best AI tool...
-        </Text>
-      </View>
-
-      {/* Input */}
-      <View style={styles.inputContainer}>
-        <TextInput
-          style={styles.input}
-          value={input}
-          onChangeText={setInput}
-          placeholder="What do you need help with?"
-          placeholderTextColor="#555"
-          multiline
-          maxLength={1000}
-        />
-        <TouchableOpacity
-          style={[styles.sendButton, !input.trim() && styles.sendButtonDisabled]}
-          disabled={!input.trim()}
-          onPress={() => setInput('')}
+    <SafeAreaProvider>
+      <NavigationContainer>
+        <StatusBar style="light" />
+        <Tab.Navigator
+          screenOptions={{
+            headerShown: false,
+            tabBarStyle: {
+              backgroundColor: theme.colors.surface,
+              borderTopColor: theme.colors.surfaceLight,
+              borderTopWidth: 1,
+            },
+            tabBarActiveTintColor: theme.colors.primary,
+            tabBarInactiveTintColor: theme.colors.textSecondary,
+          }}
         >
-          <Text style={styles.sendButtonText}>→</Text>
-        </TouchableOpacity>
-      </View>
-    </SafeAreaView>
-  )
+          <Tab.Screen
+            name="Chat"
+            component={ChatScreen}
+            options={{
+              tabBarLabel: 'Chat',
+              tabBarIcon: ({ color }) => (
+                <Text style={{ fontSize: 20, color }}>💬</Text>
+              ),
+            }}
+          />
+          <Tab.Screen
+            name="Status"
+            component={StatusScreen}
+            options={{
+              tabBarLabel: 'Status',
+              tabBarIcon: ({ color }) => (
+                <Text style={{ fontSize: 20, color }}>📊</Text>
+              ),
+            }}
+          />
+        </Tab.Navigator>
+      </NavigationContainer>
+    </SafeAreaProvider>
+  );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#0a0a0a',
-  },
-  header: {
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#1a1a1a',
-  },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#ffffff',
-  },
-  headerSubtitle: {
-    fontSize: 13,
-    color: '#666',
-    marginTop: 2,
-  },
-  chatArea: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  placeholder: {
-    color: '#444',
-    fontSize: 15,
-    textAlign: 'center',
-    lineHeight: 22,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    padding: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#1a1a1a',
-    alignItems: 'flex-end',
-    gap: 8,
-  },
-  input: {
-    flex: 1,
-    backgroundColor: '#1a1a1a',
-    borderRadius: 12,
-    padding: 12,
-    color: '#ffffff',
-    fontSize: 15,
-    maxHeight: 120,
-  },
-  sendButton: {
-    backgroundColor: '#6366f1',
-    borderRadius: 12,
-    width: 44,
-    height: 44,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  sendButtonDisabled: {
-    backgroundColor: '#2a2a2a',
-  },
-  sendButtonText: {
-    color: '#ffffff',
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-})
