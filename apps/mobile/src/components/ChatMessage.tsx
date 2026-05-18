@@ -1,94 +1,70 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { theme } from '../theme';
+import { useTheme } from '../theme';
+import { SlideUp } from './animations';
 import type { ChatMessageData } from '../types';
 
 interface Props {
   message: ChatMessageData;
+  delay?: number;
 }
 
-export function ChatMessage({ message }: Props) {
+export function ChatMessage({ message, delay = 0 }: Props) {
+  const { theme } = useTheme();
   const isUser = message.type === 'user';
 
-  const bubbleStyle = [
-    styles.bubble,
-    isUser ? styles.userBubble : styles.assistantBubble,
-  ];
-
-  const textStyle = [
-    styles.text,
-    isUser ? styles.userText : styles.assistantText,
-  ];
-
   return (
-    <View style={[styles.container, isUser ? styles.userContainer : styles.assistantContainer]}>
-      {!isUser && (
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>🤖</Text>
+    <SlideUp delay={delay} duration={250}>
+      <View style={[styles.container, isUser ? styles.userContainer : styles.assistantContainer]}>
+        {!isUser && (
+          <View style={[styles.avatar, { backgroundColor: theme.colors.surface }]}>
+            <Text style={styles.avatarText}>🤖</Text>
+          </View>
+        )}
+        <View style={[
+          styles.bubble,
+          isUser
+            ? { backgroundColor: theme.colors.primary, borderBottomRightRadius: theme.borderRadius.sm }
+            : { backgroundColor: theme.colors.surface, borderBottomLeftRadius: theme.borderRadius.sm },
+          theme.shadows.sm,
+        ]}>
+          <Text style={[styles.text, { color: theme.colors.text }]}>{message.content}</Text>
+          <Text style={[styles.timestamp, { color: theme.colors.textSecondary }]}>
+            {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </Text>
         </View>
-      )}
-      <View style={bubbleStyle}>
-        <Text style={textStyle}>{message.content}</Text>
-        <Text style={styles.timestamp}>
-          {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-        </Text>
       </View>
-    </View>
+    </SlideUp>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    marginVertical: theme.spacing.xs,
-    marginHorizontal: theme.spacing.md,
+    marginVertical: 4,
+    marginHorizontal: 16,
   },
-  userContainer: {
-    justifyContent: 'flex-end',
-  },
-  assistantContainer: {
-    justifyContent: 'flex-start',
-  },
+  userContainer: { justifyContent: 'flex-end' },
+  assistantContainer: { justifyContent: 'flex-start' },
   avatar: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: theme.colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: theme.spacing.sm,
+    marginRight: 8,
     alignSelf: 'flex-end',
   },
-  avatarText: {
-    fontSize: 16,
-  },
+  avatarText: { fontSize: 16 },
   bubble: {
     maxWidth: '75%',
-    padding: theme.spacing.md,
-    borderRadius: theme.borderRadius.lg,
+    padding: 12,
+    borderRadius: 16,
   },
-  userBubble: {
-    backgroundColor: theme.colors.primary,
-    borderBottomRightRadius: theme.borderRadius.sm,
-  },
-  assistantBubble: {
-    backgroundColor: theme.colors.surface,
-    borderBottomLeftRadius: theme.borderRadius.sm,
-  },
-  text: {
-    fontSize: theme.fontSize.md,
-    lineHeight: 20,
-  },
-  userText: {
-    color: theme.colors.text,
-  },
-  assistantText: {
-    color: theme.colors.text,
-  },
+  text: { fontSize: 14, lineHeight: 20 },
   timestamp: {
-    fontSize: theme.fontSize.sm,
-    color: theme.colors.textSecondary,
-    marginTop: theme.spacing.xs,
+    fontSize: 10,
+    marginTop: 4,
     alignSelf: 'flex-end',
   },
 });

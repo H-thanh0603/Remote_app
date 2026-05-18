@@ -5,7 +5,7 @@ import { SettingsSection } from '../components/SettingsSection'
 import { SettingsItem } from '../components/SettingsItem'
 import { settingsApi, type Settings } from '../services/settings'
 import { useApi } from '../hooks/useApi'
-import { theme } from '../theme'
+import { useTheme } from '../theme'
 
 interface UserPreferences {
   defaultTool: string | null
@@ -68,6 +68,7 @@ const DEFAULT_SETTINGS: Settings = {
 const LLM_MODELS = ['gpt-4o-mini', 'gpt-4o', 'claude-sonnet-4.6', 'claude-opus-4.6', 'deepseek-chat']
 
 export function SettingsScreen() {
+  const { theme, isDark, toggleTheme } = useTheme()
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS)
   const [prefs, setPrefs] = useState<UserPreferences>(DEFAULT_PREFS)
   const [loading, setLoading] = useState(true)
@@ -168,11 +169,11 @@ export function SettingsScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView edges={['top', 'bottom']}>
-        <View style={styles.container}>
+      <SafeAreaView edges={['top', 'bottom']} style={{ backgroundColor: theme.colors.background }}>
+        <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={theme.colors.primary} />
-            <Text style={styles.loadingText}>Loading settings...</Text>
+            <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>Loading settings...</Text>
           </View>
         </View>
       </SafeAreaView>
@@ -180,14 +181,14 @@ export function SettingsScreen() {
   }
 
   return (
-    <SafeAreaView edges={['top', 'bottom']}>
-      <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>⚙️ Settings</Text>
+    <SafeAreaView edges={['top', 'bottom']} style={{ backgroundColor: theme.colors.background }}>
+      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
+        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>⚙️ Settings</Text>
         {saving && (
           <View style={styles.savingBadge}>
             <ActivityIndicator size="small" color={theme.colors.primary} />
-            <Text style={styles.savingText}>Saving...</Text>
+            <Text style={[styles.savingText, { color: theme.colors.textSecondary }]}>Saving...</Text>
           </View>
         )}
       </View>
@@ -386,10 +387,10 @@ export function SettingsScreen() {
         <SettingsSection title="🎨 Appearance">
           <SettingsItem
             type="switch"
-            label="Dark Mode"
-            description="Toggle dark/light theme"
-            value={settings.theme === 'dark'}
-            onValueChange={v => updateSetting('theme', v ? 'dark' : 'light')}
+            label={isDark ? '🌙 Dark Mode' : '☀️ Light Mode'}
+            description="Toggle dark/light theme instantly"
+            value={isDark}
+            onValueChange={() => toggleTheme()}
           />
           <SettingsItem
             type="switch"
@@ -430,7 +431,6 @@ export function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -439,12 +439,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.surfaceLight,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: theme.colors.text,
   },
   savingBadge: {
     flexDirection: 'row',
@@ -453,7 +451,6 @@ const styles = StyleSheet.create({
   },
   savingText: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
   },
   scroll: {
     flex: 1,
@@ -469,7 +466,6 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   loadingText: {
-    color: theme.colors.textSecondary,
     fontSize: 14,
   },
 })

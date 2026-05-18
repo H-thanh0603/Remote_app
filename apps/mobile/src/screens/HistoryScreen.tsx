@@ -10,7 +10,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { theme } from '../theme';
+import { useTheme } from '../theme';
 import { Header } from '../components/Header';
 import { useApi } from '../hooks/useApi';
 import type { Task as SharedTask } from '@remote-app/shared';
@@ -59,17 +59,18 @@ function getDateRange(filter: DateFilter): { from?: string; to?: string } {
   return {};
 }
 
-function statusColor(status: string): string {
-  switch (status) {
-    case 'completed': return theme.colors.success ?? '#22c55e';
-    case 'failed': return theme.colors.error;
-    case 'running': return theme.colors.primary;
-    case 'cancelled': return theme.colors.textMuted;
-    default: return theme.colors.textSecondary;
+  function statusColor(status: string): string {
+    switch (status) {
+      case 'completed': return theme.colors.success;
+      case 'failed': return theme.colors.error;
+      case 'running': return theme.colors.primary;
+      case 'cancelled': return theme.colors.textMuted;
+      default: return theme.colors.textSecondary;
+    }
   }
-}
 
 export function HistoryScreen() {
+  const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const { searchTasks, getTaskStats } = useApi();
 
@@ -149,103 +150,103 @@ export function HistoryScreen() {
 
     return (
       <TouchableOpacity
-        style={styles.taskCard}
+        style={[styles.taskCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
         onPress={() => setExpandedId(expanded ? null : item.id)}
         activeOpacity={0.8}
       >
         <View style={styles.taskHeader}>
           <View style={[styles.statusDot, { backgroundColor: statusColor(item.status) }]} />
-          <Text style={styles.taskPrompt} numberOfLines={expanded ? undefined : 2}>
+          <Text style={[styles.taskPrompt, { color: theme.colors.text }]} numberOfLines={expanded ? undefined : 2}>
             {item.prompt}
           </Text>
         </View>
         <View style={styles.taskMeta}>
-          <Text style={styles.metaText}>🔧 {tool}</Text>
-          {duration && <Text style={styles.metaText}>⏱ {duration}</Text>}
-          {item.tokensUsed ? <Text style={styles.metaText}>🪙 {item.tokensUsed}</Text> : null}
+          <Text style={[styles.metaText, { color: theme.colors.textMuted }]}>🔧 {tool}</Text>
+          {duration && <Text style={[styles.metaText, { color: theme.colors.textMuted }]}>⏱ {duration}</Text>}
+          {item.tokensUsed ? <Text style={[styles.metaText, { color: theme.colors.textMuted }]}>🪙 {item.tokensUsed}</Text> : null}
           <Text style={[styles.metaText, { color: statusColor(item.status) }]}>{item.status}</Text>
         </View>
         {expanded && (item.result || item.error) && (
-          <View style={styles.taskResult}>
-            <Text style={styles.resultText} numberOfLines={10}>
+          <View style={[styles.taskResult, { backgroundColor: theme.colors.background }]}>
+            <Text style={[styles.resultText, { color: theme.colors.textSecondary }]} numberOfLines={10}>
               {item.result ?? item.error}
             </Text>
           </View>
         )}
-        <Text style={styles.taskDate}>
+        <Text style={[styles.taskDate, { color: theme.colors.textMuted }]}>
           {new Date(item.createdAt).toLocaleString('vi-VN')}
         </Text>
       </TouchableOpacity>
     );
-  }, [expandedId]);
+  }, [expandedId, theme]);
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.colors.background }]}>
       <Header title="Lịch sử" subtitle={`${total} tasks`} />
 
-      {/* Stats card */}
       {stats && (
-        <View style={styles.statsCard}>
+        <View style={[styles.statsCard, { backgroundColor: theme.colors.surface }]}>
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>{stats.total}</Text>
-            <Text style={styles.statLabel}>Tổng</Text>
+            <Text style={[styles.statValue, { color: theme.colors.text }]}>{stats.total}</Text>
+            <Text style={[styles.statLabel, { color: theme.colors.textMuted }]}>Tổng</Text>
           </View>
           <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: '#22c55e' }]}>{stats.completed}</Text>
-            <Text style={styles.statLabel}>Xong</Text>
+            <Text style={[styles.statValue, { color: theme.colors.success }]}>{stats.completed}</Text>
+            <Text style={[styles.statLabel, { color: theme.colors.textMuted }]}>Xong</Text>
           </View>
           <View style={styles.statItem}>
             <Text style={[styles.statValue, { color: theme.colors.error }]}>{stats.failed}</Text>
-            <Text style={styles.statLabel}>Lỗi</Text>
+            <Text style={[styles.statLabel, { color: theme.colors.textMuted }]}>Lỗi</Text>
           </View>
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>
+            <Text style={[styles.statValue, { color: theme.colors.text }]}>
               {stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0}%
             </Text>
-            <Text style={styles.statLabel}>Thành công</Text>
+            <Text style={[styles.statLabel, { color: theme.colors.textMuted }]}>Thành công</Text>
           </View>
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>{(stats.avgDuration / 1000).toFixed(1)}s</Text>
-            <Text style={styles.statLabel}>TB thời gian</Text>
+            <Text style={[styles.statValue, { color: theme.colors.text }]}>{(stats.avgDuration / 1000).toFixed(1)}s</Text>
+            <Text style={[styles.statLabel, { color: theme.colors.textMuted }]}>TB thời gian</Text>
           </View>
         </View>
       )}
 
-      {/* Search bar */}
       <View style={styles.searchContainer}>
         <TextInput
-          style={styles.searchInput}
-          placeholder="🔍 Tìm kiếm SharedTask..."
+          style={[styles.searchInput, { backgroundColor: theme.colors.surface, color: theme.colors.text }]}
+          placeholder="🔍 Tìm kiếm task..."
           placeholderTextColor={theme.colors.textMuted}
           value={search}
           onChangeText={setSearch}
         />
       </View>
 
-      {/* Status filter chips */}
       <View style={styles.filterRow}>
         {STATUS_FILTERS.map(f => (
           <TouchableOpacity
             key={f.key}
-            style={[styles.chip, statusFilter === f.key && styles.chipActive]}
+            style={[styles.chip, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border },
+              statusFilter === f.key && { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary }]}
             onPress={() => setStatusFilter(f.key)}
           >
-            <Text style={[styles.chipText, statusFilter === f.key && styles.chipTextActive]}>
+            <Text style={[styles.chipText, { color: theme.colors.textSecondary },
+              statusFilter === f.key && styles.chipTextActive]}>
               {f.label}
             </Text>
           </TouchableOpacity>
         ))}
       </View>
 
-      {/* Date filter */}
       <View style={styles.filterRow}>
         {DATE_FILTERS.map(f => (
           <TouchableOpacity
             key={f.key}
-            style={[styles.chip, dateFilter === f.key && styles.chipActive]}
+            style={[styles.chip, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border },
+              dateFilter === f.key && { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary }]}
             onPress={() => setDateFilter(f.key)}
           >
-            <Text style={[styles.chipText, dateFilter === f.key && styles.chipTextActive]}>
+            <Text style={[styles.chipText, { color: theme.colors.textSecondary },
+              dateFilter === f.key && styles.chipTextActive]}>
               {f.label}
             </Text>
           </TouchableOpacity>
@@ -277,67 +278,59 @@ export function HistoryScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.background },
+  container: { flex: 1 },
   flex: { flex: 1 },
   statsCard: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    backgroundColor: theme.colors.surface,
-    marginHorizontal: theme.spacing.md,
-    marginTop: theme.spacing.sm,
-    borderRadius: theme.borderRadius.md,
-    padding: theme.spacing.md,
+    marginHorizontal: 16,
+    marginTop: 8,
+    borderRadius: 12,
+    padding: 16,
   },
   statItem: { alignItems: 'center' },
-  statValue: { fontSize: theme.fontSize.lg, fontWeight: '700', color: theme.colors.text },
-  statLabel: { fontSize: theme.fontSize.xs, color: theme.colors.textMuted, marginTop: 2 },
-  searchContainer: { paddingHorizontal: theme.spacing.md, paddingTop: theme.spacing.sm },
+  statValue: { fontSize: 16, fontWeight: '700' },
+  statLabel: { fontSize: 10, marginTop: 2 },
+  searchContainer: { paddingHorizontal: 16, paddingTop: 8 },
   searchInput: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.md,
-    padding: theme.spacing.sm,
-    color: theme.colors.text,
-    fontSize: theme.fontSize.md,
+    borderRadius: 12,
+    padding: 8,
+    fontSize: 14,
   },
   filterRow: {
     flexDirection: 'row',
-    paddingHorizontal: theme.spacing.md,
-    paddingTop: theme.spacing.sm,
-    gap: theme.spacing.xs,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    gap: 4,
     flexWrap: 'wrap',
   },
   chip: {
-    paddingHorizontal: theme.spacing.sm,
+    paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 20,
-    backgroundColor: theme.colors.surface,
     borderWidth: 1,
-    borderColor: theme.colors.border,
   },
-  chipActive: { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary },
-  chipText: { fontSize: theme.fontSize.sm, color: theme.colors.textSecondary },
+  chipActive: {},
+  chipText: { fontSize: 12 },
   chipTextActive: { color: '#fff', fontWeight: '600' },
-  listContent: { padding: theme.spacing.md, gap: theme.spacing.sm },
+  listContent: { padding: 16, gap: 8 },
   taskCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.md,
-    padding: theme.spacing.md,
+    borderRadius: 12,
+    padding: 16,
     borderWidth: 1,
-    borderColor: theme.colors.border,
   },
-  taskHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: theme.spacing.sm },
+  taskHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
   statusDot: { width: 8, height: 8, borderRadius: 4, marginTop: 6 },
-  taskPrompt: { flex: 1, color: theme.colors.text, fontSize: theme.fontSize.md },
-  taskMeta: { flexDirection: 'row', gap: theme.spacing.sm, marginTop: theme.spacing.xs, flexWrap: 'wrap' },
-  metaText: { fontSize: theme.fontSize.xs, color: theme.colors.textMuted },
+  taskPrompt: { flex: 1, fontSize: 14 },
+  taskMeta: { flexDirection: 'row', gap: 8, marginTop: 4, flexWrap: 'wrap' },
+  metaText: { fontSize: 10 },
   taskResult: {
-    marginTop: theme.spacing.sm,
-    backgroundColor: theme.colors.background,
-    borderRadius: theme.borderRadius.sm,
-    padding: theme.spacing.sm,
+    marginTop: 8,
+    borderRadius: 8,
+    padding: 8,
   },
-  resultText: { fontSize: theme.fontSize.sm, color: theme.colors.textSecondary, fontFamily: 'monospace' },
-  taskDate: { fontSize: theme.fontSize.xs, color: theme.colors.textMuted, marginTop: theme.spacing.xs },
+  resultText: { fontSize: 12, fontFamily: 'monospace' },
+  taskDate: { fontSize: 10, marginTop: 4 },
   empty: { alignItems: 'center', paddingTop: 60 },
-  emptyText: { color: theme.colors.textMuted, fontSize: theme.fontSize.md },
+  emptyText: { fontSize: 14 },
 });

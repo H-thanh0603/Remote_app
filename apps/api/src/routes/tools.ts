@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify'
-import { getAllTools, getToolById, updateToolStatus } from '../db/repositories/tools.js'
+import { getAllTools, getToolById, updateToolStatus, getToolStats } from '../db/repositories/tools.js'
 import { wsManager } from '../services/websocket.js'
 import { notificationService } from '../services/index.js'
 import { executionManager } from '../services/execution-manager.js'
@@ -63,6 +63,17 @@ export async function toolRoutes(fastify: FastifyInstance): Promise<void> {
       }
 
       return reply.code(200).send({ success: true, data: updated })
+    }
+  )
+
+  // GET /api/tools/:id/stats — Get tool stats
+  fastify.get<{ Params: ToolParams }>(
+    '/api/tools/:id/stats',
+    async (req, reply) => {
+      const tool = getToolById(req.params.id)
+      if (!tool) throw Errors.NOT_FOUND('Tool not found')
+      const stats = getToolStats(req.params.id)
+      return reply.code(200).send({ success: true, data: stats })
     }
   )
 

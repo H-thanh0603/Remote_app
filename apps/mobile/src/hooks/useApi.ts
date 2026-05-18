@@ -180,10 +180,50 @@ export function useApi() {
     }
   }, []);
 
+  const fetchToolById = useCallback(async (toolId: string): Promise<Tool | null> => {
+    try {
+      const data = await api.get(`/tools/${toolId}`) as { success: boolean; data?: Tool };
+      return data.data ?? null;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const fetchToolStats = useCallback(async (toolId: string) => {
+    try {
+      const data = await api.get(`/tools/${toolId}/stats`) as { success: boolean; data?: any };
+      return data.data ?? null;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const updateToolStatus = useCallback(async (toolId: string, status: string) => {
+    try {
+      const data = await api.put(`/tools/${toolId}/status`, { status }) as { success: boolean; data?: Tool };
+      return data.data ?? null;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const testToolConnection = useCallback(async (toolId: string) => {
+    try {
+      const data = await api.get(`/tools/${toolId}/health`) as { success: boolean; data?: { healthy: boolean; message?: string } };
+      return data.data ?? { healthy: false };
+    } catch {
+      return { healthy: false, message: 'Connection failed' };
+    }
+  }, []);
+
   return {
     loading,
     error,
     fetchTools,
+    fetchToolById,
+    fetchToolStats,
+    updateToolStatus,
+    testToolConnection,
     fetchTasks,
     searchTasks,
     getTaskStats,

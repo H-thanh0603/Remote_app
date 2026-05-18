@@ -1,13 +1,6 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  Clipboard,
-  StyleSheet,
-} from 'react-native';
-import { theme } from '../theme';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import { useTheme } from '../theme';
 
 interface ResultMessageProps {
   content: string;
@@ -19,42 +12,48 @@ interface ResultMessageProps {
 const PREVIEW_LENGTH = 500;
 
 export function ResultMessage({ content, toolName, duration, tokensUsed }: ResultMessageProps) {
+  const { theme } = useTheme();
   const [expanded, setExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
   const isLong = content.length > PREVIEW_LENGTH;
   const displayContent = isLong && !expanded ? content.slice(0, PREVIEW_LENGTH) + '...' : content;
 
-  const handleCopy = () => {
-    Clipboard.setString(content);
+  const handleCopy = async () => {
+    try {
+      // Use Clipboard from @react-native-clipboard/clipboard if available, fallback gracefully
+      const { default: Clipboard } = await import('@react-native-clipboard/clipboard');
+      Clipboard.setString(content);
+    } catch {
+      // Clipboard not available — silent fail
+    }
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
   return (
-    <View style={styles.container}>
-      {/* Metadata */}
-      <View style={styles.meta}>
-        {toolName && <Text style={styles.metaText}>🔧 {toolName}</Text>}
-        {duration !== undefined && <Text style={styles.metaText}>⏱ {(duration / 1000).toFixed(1)}s</Text>}
-        {tokensUsed !== undefined && <Text style={styles.metaText}>🪙 {tokensUsed} tokens</Text>}
+    <View style={[
+      styles.container,
+      { backgroundColor: theme.colors.surface, borderLeftColor: theme.colors.success },
+      theme.shadows.sm,
+    ]}>
+      <View style={[styles.meta, { backgroundColor: theme.colors.surfaceLight }]}>
+        {toolName && <Text style={[styles.metaText, { color: theme.colors.textSecondary }]}>🔧 {toolName}</Text>}
+        {duration !== undefined && <Text style={[styles.metaText, { color: theme.colors.textSecondary }]}>⏱ {(duration / 1000).toFixed(1)}s</Text>}
+        {tokensUsed !== undefined && <Text style={[styles.metaText, { color: theme.colors.textSecondary }]}>🪙 {tokensUsed} tokens</Text>}
       </View>
-
-      {/* Code block */}
       <View style={styles.codeBlock}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <Text style={styles.codeText}>{displayContent}</Text>
         </ScrollView>
       </View>
-
-      {/* Actions */}
-      <View style={styles.actions}>
+      <View style={[styles.actions, { backgroundColor: theme.colors.surface }]}>
         {isLong && (
-          <TouchableOpacity onPress={() => setExpanded(!expanded)} style={styles.actionBtn}>
-            <Text style={styles.actionText}>{expanded ? 'Show less' : 'Show more'}</Text>
+          <TouchableOpacity onPress={() => setExpanded(!expanded)} style={[styles.actionBtn, { backgroundColor: theme.colors.surfaceLight }]}>
+            <Text style={[styles.actionText, { color: theme.colors.primary }]}>{expanded ? 'Show less' : 'Show more'}</Text>
           </TouchableOpacity>
         )}
-        <TouchableOpacity onPress={handleCopy} style={styles.actionBtn}>
-          <Text style={styles.actionText}>{copied ? '✅ Copied!' : '📋 Copy'}</Text>
+        <TouchableOpacity onPress={handleCopy} style={[styles.actionBtn, { backgroundColor: theme.colors.surfaceLight }]}>
+          <Text style={[styles.actionText, { color: theme.colors.primary }]}>{copied ? '✅ Copied!' : '📋 Copy'}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -63,51 +62,40 @@ export function ResultMessage({ content, toolName, duration, tokensUsed }: Resul
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
-    marginHorizontal: theme.spacing.md,
-    marginVertical: theme.spacing.sm,
+    borderRadius: 16,
+    marginHorizontal: 16,
+    marginVertical: 8,
     overflow: 'hidden',
     borderLeftWidth: 3,
-    borderLeftColor: theme.colors.success,
   },
   meta: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: theme.spacing.sm,
-    padding: theme.spacing.sm,
-    backgroundColor: theme.colors.surfaceLight,
+    gap: 8,
+    padding: 8,
   },
-  metaText: {
-    color: theme.colors.textSecondary,
-    fontSize: theme.fontSize.xs,
-  },
+  metaText: { fontSize: 10 },
   codeBlock: {
     backgroundColor: '#0d1117',
-    padding: theme.spacing.md,
+    padding: 16,
     maxHeight: 300,
   },
   codeText: {
     color: '#e6edf3',
     fontFamily: 'monospace',
-    fontSize: theme.fontSize.sm,
+    fontSize: 12,
     lineHeight: 20,
   },
   actions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    gap: theme.spacing.sm,
-    padding: theme.spacing.sm,
+    gap: 8,
+    padding: 8,
   },
   actionBtn: {
-    paddingHorizontal: theme.spacing.sm,
+    paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: theme.borderRadius.sm,
-    backgroundColor: theme.colors.surfaceLight,
+    borderRadius: 8,
   },
-  actionText: {
-    color: theme.colors.primary,
-    fontSize: theme.fontSize.xs,
-    fontWeight: '600',
-  },
+  actionText: { fontSize: 10, fontWeight: '600' },
 });
