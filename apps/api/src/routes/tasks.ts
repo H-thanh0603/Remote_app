@@ -40,8 +40,8 @@ export async function taskRoutes(fastify: FastifyInstance): Promise<void> {
         return reply.code(400).send({ success: false, error: 'prompt too long (max 2000 chars)' })
       }
 
-      // Get routing suggestion
-      const suggestion = routeTask(prompt.trim())
+      // Get routing suggestion (LLM-based with keyword fallback)
+      const suggestion = await routeTask(prompt.trim())
 
       // Create task in DB
       const task = createTask(prompt.trim(), suggestion.toolId)
