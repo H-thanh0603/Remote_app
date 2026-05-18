@@ -12,6 +12,7 @@ import { getRecentTasks } from './db/repositories/tasks.js'
 import { notificationRoutes } from './routes/notifications.js'
 import { settingsRoutes } from './routes/settings.js'
 import { preferencesRoutes } from './routes/preferences.js'
+import { exportRoutes } from './routes/export.js'
 import { executionManager } from './services/execution-manager.js'
 import { errorHandler } from './middleware/error-handler.js'
 
@@ -33,6 +34,7 @@ await server.register(taskRoutes)
 await server.register(notificationRoutes)
 await server.register(settingsRoutes)
 await server.register(preferencesRoutes)
+await server.register(exportRoutes, { prefix: '/api' })
 
 // WebSocket endpoint
 server.register(async function (fastify) {
