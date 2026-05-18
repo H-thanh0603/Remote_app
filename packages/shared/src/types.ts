@@ -1,5 +1,5 @@
 export type ToolStatus = 'running' | 'idle' | 'error' | 'offline'
-export type TaskStatus = 'pending' | 'confirmed' | 'running' | 'completed' | 'failed'
+export type TaskStatus = 'pending' | 'confirmed' | 'running' | 'completed' | 'failed' | 'cancelled'
 
 export interface Tool {
   id: string
@@ -55,4 +55,18 @@ export interface ApiResponse<T> {
   success: boolean
   data?: T
   error?: string
+}
+
+export interface CreateTaskRequest {
+  prompt: string
+}
+
+export interface ConfirmTaskRequest {
+  toolId: string
+}
+
+export interface RoutingResult {
+  toolId: string
+  confidence: number
+  reason: string
 }

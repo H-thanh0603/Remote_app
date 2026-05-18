@@ -3,6 +3,9 @@ import cors from '@fastify/cors'
 import websocket from '@fastify/websocket'
 import { initDb } from './db/index.js'
 import { seedDatabase } from './db/seed.js'
+import { toolRoutes } from './routes/tools.js'
+import { taskRoutes } from './routes/tasks.js'
+import { healthRoutes } from './routes/health.js'
 
 const server = Fastify({
   logger: true,
@@ -15,10 +18,10 @@ await server.register(cors, {
 
 await server.register(websocket)
 
-// Health check
-server.get('/health', async () => {
-  return { status: 'ok', timestamp: new Date().toISOString() }
-})
+// Register routes
+await server.register(healthRoutes)
+await server.register(toolRoutes)
+await server.register(taskRoutes)
 
 // WebSocket endpoint
 server.register(async function (fastify) {
@@ -35,13 +38,31 @@ server.register(async function (fastify) {
   })
 })
 
+// Global error handler
+server.setErrorHandler((error, _req, reply) => {
+  server.log.error(error)
+  const statusCode = error.statusCode ?? 500
+  reply.code(statusCode).send({
+    success: false,
+    error: statusCode === 500 ? 'Internal server error' : error.message,
+  })
+})
+
+// 404 handler
+server.setNotFoundHandler((_req, reply) => {
+  reply.code(404).send({ success: false, error: 'Route not found' })
+})
+
+// Request logging
+server.addHook('onRequest', async (req) => {
+  server.log.info(`${req.method} ${req.url}`)
+})
+
 // Start server
 const start = async (): Promise<void> => {
   try {
-    // Initialize database
     initDb()
     seedDatabase()
-
     await server.listen({ port: 3001, host: '0.0.0.0' })
     console.log('🚀 API server running on http://localhost:3001')
   } catch (err) {
