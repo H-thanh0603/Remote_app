@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import { getAllTools, getToolById, updateToolStatus } from '../db/repositories/tools.js'
 import { wsManager } from '../services/websocket.js'
+import { notificationService } from '../services/index.js'
 import type { ApiResponse, Tool } from '@remote-app/shared'
 
 interface UpdateStatusBody {
@@ -60,6 +61,13 @@ export async function toolRoutes(fastify: FastifyInstance): Promise<void> {
 
       // Broadcast WS event
       wsManager.broadcast('tool:status_changed', { toolId: id, oldStatus, newStatus: status })
+
+      // Notify tool status change
+      if (status === 'error') {
+        notificationService.notify('tool:error', { tool: updated, oldStatus, newStatus: status }).catch(() => {})
+      } else {
+        notificationService.notify('tool:status_changed', { tool: updated, oldStatus, newStatus: status }).catch(() => {})
+      }
 
       return reply.code(200).send({ success: true, data: updated })
     }
