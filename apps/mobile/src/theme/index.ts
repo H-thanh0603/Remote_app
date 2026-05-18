@@ -7,6 +7,8 @@ export const theme = {
     surfaceLight: '#334155',
     text: '#F8FAFC',
     textSecondary: '#94A3B8',
+    textMuted: '#64748B',
+    border: '#334155',
     success: '#10B981',
     warning: '#F59E0B',
     error: '#EF4444',

@@ -42,6 +42,7 @@ interface ButtonProps extends BaseProps {
 interface InfoProps extends BaseProps {
   type: 'info'
   value: string
+  onPress?: () => void
 }
 
 type SettingsItemProps = TextInputProps | SwitchProps | ButtonProps | InfoProps
@@ -93,6 +94,13 @@ export function SettingsItem(props: SettingsItemProps) {
           </TouchableOpacity>
         )
       case 'info':
+        if (props.onPress) {
+          return (
+            <TouchableOpacity onPress={props.onPress}>
+              <Text style={[styles.infoValue, { color: theme.colors.primary }]}>{props.value} ›</Text>
+            </TouchableOpacity>
+          )
+        }
         return <Text style={styles.infoValue}>{props.value}</Text>
     }
   }

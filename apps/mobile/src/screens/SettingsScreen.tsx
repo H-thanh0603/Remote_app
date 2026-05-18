@@ -4,7 +4,52 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { SettingsSection } from '../components/SettingsSection'
 import { SettingsItem } from '../components/SettingsItem'
 import { settingsApi, type Settings } from '../services/settings'
+import { useApi } from '../hooks/useApi'
 import { theme } from '../theme'
+
+interface UserPreferences {
+  defaultTool: string | null
+  autoConfirm: boolean
+  autoConfirmThreshold: number
+  theme: 'dark' | 'light'
+  language: 'en' | 'vi'
+  showTokenUsage: boolean
+  showDuration: boolean
+  telegramEnabled: boolean
+  notifyOnComplete: boolean
+  notifyOnFail: boolean
+  notifyOnToolError: boolean
+  historyRetentionDays: number
+  autoDeleteOldTasks: boolean
+}
+
+const DEFAULT_PREFS: UserPreferences = {
+  defaultTool: null,
+  autoConfirm: false,
+  autoConfirmThreshold: 0.9,
+  theme: 'dark',
+  language: 'vi',
+  showTokenUsage: true,
+  showDuration: true,
+  telegramEnabled: false,
+  notifyOnComplete: true,
+  notifyOnFail: true,
+  notifyOnToolError: true,
+  historyRetentionDays: 30,
+  autoDeleteOldTasks: false,
+}
+
+const TOOL_OPTIONS = [
+  { label: 'Auto (AI decides)', value: null },
+  { label: 'OpenClaw', value: 'openclaw' },
+  { label: 'Hermes', value: 'hermes' },
+  { label: 'Kiro', value: 'kiro' },
+  { label: 'Antigravity', value: 'antigravity' },
+  { label: 'Codex', value: 'codex' },
+  { label: 'Claude Code', value: 'claude-code' },
+]
+
+const RETENTION_OPTIONS = [7, 30, 90, 365]
 
 const DEFAULT_SETTINGS: Settings = {
   llm_base_url: '',
@@ -24,30 +69,55 @@ const LLM_MODELS = ['gpt-4o-mini', 'gpt-4o', 'claude-sonnet-4.6', 'claude-opus-4
 
 export function SettingsScreen() {
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS)
+  const [prefs, setPrefs] = useState<UserPreferences>(DEFAULT_PREFS)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState<string | null>(null)
   const [validating, setValidating] = useState(false)
   const [testingTelegram, setTestingTelegram] = useState(false)
   const [serverStatus, setServerStatus] = useState<'checking' | 'online' | 'offline'>('checking')
+  const { getPreferences, updatePreference, resetPreferences } = useApi()
 
   const loadSettings = useCallback(async () => {
     try {
       setLoading(true)
-      const res = await settingsApi.getAll()
+      const [res, prefsData] = await Promise.all([
+        settingsApi.getAll(),
+        getPreferences(),
+      ])
       if (res.success && res.data) {
         setSettings({ ...DEFAULT_SETTINGS, ...res.data })
       }
+      if (prefsData) setPrefs(prefsData)
       setServerStatus('online')
     } catch {
       setServerStatus('offline')
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [getPreferences])
 
   useEffect(() => {
     void loadSettings()
   }, [loadSettings])
+
+  const updatePref = useCallback(async (key: string, value: unknown) => {
+    setSaving(key)
+    const updated = await updatePreference(key, value)
+    if (updated) setPrefs(updated as UserPreferences)
+    setSaving(null)
+  }, [updatePreference])
+
+  const handleResetPrefs = useCallback(async () => {
+    Alert.alert('Reset Preferences', 'Reset all preferences to defaults?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Reset', style: 'destructive', onPress: async () => {
+          const updated = await resetPreferences()
+          if (updated) setPrefs(updated as UserPreferences)
+        }
+      },
+    ])
+  }, [resetPreferences])
 
   const updateSetting = useCallback(async (key: keyof Settings, value: string) => {
     setSettings(prev => ({ ...prev, [key]: value }))
@@ -230,6 +300,84 @@ export function SettingsScreen() {
             description="Notify when a tool goes offline or errors"
             value={settings.notification_tool_error === 'true'}
             onValueChange={v => updateSetting('notification_tool_error', v ? 'true' : 'false')}
+            isLast
+          />
+        </SettingsSection>
+
+        {/* 🤖 Routing */}
+        <SettingsSection title="🤖 Routing">
+          <SettingsItem
+            type="info"
+            label="Default Tool"
+            value={TOOL_OPTIONS.find(t => t.value === prefs.defaultTool)?.label ?? 'Auto'}
+            description="Tap to cycle through tools"
+            onPress={() => {
+              const idx = TOOL_OPTIONS.findIndex(t => t.value === prefs.defaultTool)
+              const next = TOOL_OPTIONS[(idx + 1) % TOOL_OPTIONS.length]
+              if (next) void updatePref('defaultTool', next.value)
+            }}
+          />
+          <SettingsItem
+            type="switch"
+            label="Auto-Confirm"
+            description="Skip suggestion card and execute immediately when confidence is high"
+            value={prefs.autoConfirm}
+            onValueChange={v => void updatePref('autoConfirm', v)}
+          />
+          <SettingsItem
+            type="info"
+            label="Auto-Confirm Threshold"
+            value={`${Math.round(prefs.autoConfirmThreshold * 100)}%`}
+            description="Tap to adjust (50% → 60% → 70% → 80% → 90% → 100%)"
+            onPress={() => {
+              const steps = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+              const idx = steps.indexOf(prefs.autoConfirmThreshold)
+              const next = steps[(idx + 1) % steps.length]
+              void updatePref('autoConfirmThreshold', next)
+            }}
+            isLast
+          />
+        </SettingsSection>
+
+        {/* 📋 History */}
+        <SettingsSection title="📋 History">
+          <SettingsItem
+            type="info"
+            label="Retention Period"
+            value={`${prefs.historyRetentionDays} days`}
+            description="Tap to cycle: 7 → 30 → 90 → 365 days"
+            onPress={() => {
+              const idx = RETENTION_OPTIONS.indexOf(prefs.historyRetentionDays)
+              const next = RETENTION_OPTIONS[(idx + 1) % RETENTION_OPTIONS.length]
+              void updatePref('historyRetentionDays', next)
+            }}
+          />
+          <SettingsItem
+            type="switch"
+            label="Auto-Delete Old Tasks"
+            description="Automatically delete tasks older than retention period"
+            value={prefs.autoDeleteOldTasks}
+            onValueChange={v => void updatePref('autoDeleteOldTasks', v)}
+          />
+          <SettingsItem
+            type="switch"
+            label="Show Token Usage"
+            description="Display token count in task results"
+            value={prefs.showTokenUsage}
+            onValueChange={v => void updatePref('showTokenUsage', v)}
+          />
+          <SettingsItem
+            type="switch"
+            label="Show Duration"
+            description="Display execution time in task results"
+            value={prefs.showDuration}
+            onValueChange={v => void updatePref('showDuration', v)}
+          />
+          <SettingsItem
+            type="button"
+            label="Reset All Preferences"
+            description="Restore all preferences to defaults"
+            onPress={handleResetPrefs}
             isLast
           />
         </SettingsSection>

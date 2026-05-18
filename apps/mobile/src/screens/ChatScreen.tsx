@@ -121,6 +121,19 @@ export function ChatScreen() {
       addMessage({ type: 'error', content: '❌ Không thể kết nối server. Vui lòng thử lại.', timestamp: new Date().toISOString() });
       return;
     }
+
+    // Auto-confirmed: skip suggestion card, go straight to execution
+    if (result.autoConfirmed && result.task?.id) {
+      setActiveTaskId(result.task.id);
+      setProgressInfo({ toolName: result.suggestion?.toolId ?? 'AI Tool' });
+      addMessage({
+        type: 'system',
+        content: `⚡ Auto-routed to ${result.suggestion?.toolId ?? 'AI Tool'} (confidence: ${Math.round((result.suggestion?.confidence ?? 1) * 100)}%)`,
+        timestamp: new Date().toISOString(),
+      });
+      return;
+    }
+
     if (result.suggestion) {
       setPendingTaskId(result.task?.id ?? null);
       setPendingSuggestion(result.suggestion);

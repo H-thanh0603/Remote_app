@@ -1,6 +1,7 @@
 import type { RoutingSuggestion } from '@remote-app/shared'
 import { getAllTools } from '../db/repositories/tools.js'
 import { llmService } from './llm.js'
+import { getPreferencesInstance } from '../routes/preferences.js'
 
 // ─── Keyword-based fallback router ───────────────────────────────────────────
 
@@ -119,6 +120,22 @@ async function llmRoute(prompt: string): Promise<RoutingSuggestion | null> {
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 export async function routeTask(prompt: string): Promise<RoutingSuggestion> {
+  const prefs = getPreferencesInstance()
+
+  // If defaultTool is set → always use it (confidence 1.0)
+  if (prefs.defaultTool) {
+    const tools = getAllTools()
+    const tool = tools.find(t => t.id === prefs.defaultTool)
+    if (tool) {
+      console.log(`[router] Using defaultTool from preferences: ${prefs.defaultTool}`)
+      return {
+        toolId: tool.id,
+        confidence: 1.0,
+        reason: `Đang dùng tool mặc định: ${tool.name}`,
+      }
+    }
+  }
+
   // Try LLM first
   const llmResult = await llmRoute(prompt)
   if (llmResult) return llmResult

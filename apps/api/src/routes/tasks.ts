@@ -4,6 +4,8 @@ import {
   createTask,
   getTaskById,
   getRecentTasks,
+  searchTasks,
+  getTaskStats,
   updateTaskStatus,
 } from '../db/repositories/tasks.js'
 import { getToolById } from '../db/repositories/tools.js'
@@ -27,11 +29,18 @@ interface TaskParams {
 
 interface ListTasksQuery {
   limit?: string
+  offset?: string
+  status?: string
+  tool?: string
+  search?: string
+  from?: string
+  to?: string
+  sort?: string
 }
 
 export async function taskRoutes(fastify: FastifyInstance): Promise<void> {
   // POST /api/tasks — Create new task
-  fastify.post<{ Body: CreateTaskBody; Reply: ApiResponse<Task & { suggestion: { toolId: string; confidence: number; reason: string } }> }>(
+  fastify.post<{ Body: CreateTaskBody; Reply: ApiResponse<Task & { suggestion: { toolId: string; confidence: number; reason: string }; autoConfirmed?: boolean }> }>(
     '/api/tasks',
     async (req, reply) => {
       const { prompt } = req.body
@@ -45,28 +54,70 @@ export async function taskRoutes(fastify: FastifyInstance): Promise<void> {
       // Create task in DB
       const task = createTask(prompt.trim(), suggestion.toolId)
 
+      // Check auto-confirm preference
+      const { getPreferencesInstance } = await import('../routes/preferences.js')
+      const prefs = getPreferencesInstance()
+      const shouldAutoConfirm = prefs.autoConfirm && suggestion.confidence >= prefs.autoConfirmThreshold
+
       // Broadcast WS events
       wsManager.broadcast('task:created', { task })
       wsManager.broadcast('task:routing_suggested', { taskId: task.id, suggestion })
+
+      if (shouldAutoConfirm) {
+        // Auto-confirm: update status and trigger execution
+        updateTaskStatus(task.id, 'confirmed')
+        const db = (await import('../db/index.js')).getDb()
+        db.prepare('UPDATE tasks SET confirmed_tool = ? WHERE id = ?').run(suggestion.toolId, task.id)
+        wsManager.broadcast('task:confirmed', { taskId: task.id, toolId: suggestion.toolId, autoConfirmed: true })
+        setImmediate(() => {
+          executionManager.executeTask(task.id).catch((err) => {
+            console.error(`[execution] Auto-confirmed task ${task.id} failed:`, err)
+          })
+        })
+      }
 
       return reply.code(201).send({
         success: true,
         data: {
           ...task,
           suggestion,
+          autoConfirmed: shouldAutoConfirm,
         },
       })
     }
   )
 
-  // GET /api/tasks — List recent tasks
-  fastify.get<{ Querystring: ListTasksQuery; Reply: ApiResponse<Task[]> }>(
+  // GET /api/tasks/stats
+  fastify.get<{ Reply: ApiResponse<ReturnType<typeof getTaskStats>> }>(
+    '/api/tasks/stats',
+    async (_req, reply) => {
+      const stats = getTaskStats()
+      return reply.code(200).send({ success: true, data: stats })
+    }
+  )
+
+  // GET /api/tasks — List/search tasks
+  fastify.get<{ Querystring: ListTasksQuery; Reply: ApiResponse<{ tasks: Task[]; total: number }> }>(
     '/api/tasks',
     async (req, reply) => {
-      const limit = Math.min(parseInt(req.query.limit ?? '20', 10), 100)
-      if (isNaN(limit) || limit < 1) throw Errors.VALIDATION_ERROR('Invalid limit')
-      const tasks = getRecentTasks(limit)
-      return reply.code(200).send({ success: true, data: tasks })
+      const { limit, offset, status, tool, search, from, to, sort } = req.query
+      const parsedLimit = Math.min(parseInt(limit ?? '20', 10), 100)
+      const parsedOffset = parseInt(offset ?? '0', 10)
+      if (isNaN(parsedLimit) || parsedLimit < 1) throw Errors.VALIDATION_ERROR('Invalid limit')
+      if (isNaN(parsedOffset) || parsedOffset < 0) throw Errors.VALIDATION_ERROR('Invalid offset')
+      if (sort && !['asc', 'desc'].includes(sort)) throw Errors.VALIDATION_ERROR('sort must be asc or desc')
+
+      const result = searchTasks({
+        limit: parsedLimit,
+        offset: parsedOffset,
+        status,
+        tool,
+        search,
+        from,
+        to,
+        sort: sort as 'asc' | 'desc' | undefined,
+      })
+      return reply.code(200).send({ success: true, data: result })
     }
   )
 
