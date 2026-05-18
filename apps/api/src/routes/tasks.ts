@@ -9,6 +9,7 @@ import { getToolById } from '../db/repositories/tools.js'
 import { routeTask } from '../services/router.js'
 import { wsManager } from '../services/websocket.js'
 import { notificationService } from '../services/index.js'
+import { executionManager } from '../services/execution-manager.js'
 import type { ApiResponse, Task } from '@remote-app/shared'
 
 interface CreateTaskBody {
@@ -115,15 +116,16 @@ export async function taskRoutes(fastify: FastifyInstance): Promise<void> {
       db.prepare('UPDATE tasks SET confirmed_tool = ? WHERE id = ?').run(toolId, id)
 
       const updated = getTaskById(id)!
-      const tool = getToolById(toolId)
 
       // Broadcast WS event
       wsManager.broadcast('task:confirmed', { taskId: id, toolId })
 
-      // Notify task completed
-      if (tool) {
-        notificationService.notify('task:completed', { task: updated, tool }).catch(() => {})
-      }
+      // Execute async — don't await, return immediately
+      setImmediate(() => {
+        executionManager.executeTask(id).catch((err) => {
+          console.error(`[execution] Task ${id} failed:`, err)
+        })
+      })
 
       return reply.code(200).send({ success: true, data: updated })
     }

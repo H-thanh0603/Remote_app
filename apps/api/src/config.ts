@@ -27,6 +27,11 @@ loadEnv()
 
 export interface AppConfig {
   port: number
+  llmBaseUrl: string
+  llmApiKey: string
+  executionTimeout: number
+  openclawGatewayUrl: string
+  openclawGatewayToken: string
   llm: {
     baseUrl: string
     apiKey: string
@@ -38,21 +43,32 @@ export interface AppConfig {
   }
 }
 
-function requireEnv(key: string, fallback?: string): string {
-  const val = process.env[key] ?? fallback
-  if (!val) throw new Error(`Missing required env var: ${key}`)
-  return val
+let _config: AppConfig | null = null
+
+export function getConfig(): AppConfig {
+  if (_config) return _config
+  _config = {
+    port: parseInt(process.env['PORT'] ?? '3001', 10),
+    llmBaseUrl: process.env['LLM_BASE_URL'] ?? 'http://127.0.0.1:20128/v1',
+    llmApiKey: process.env['LLM_API_KEY'] ?? '',
+    executionTimeout: parseInt(process.env['EXECUTION_TIMEOUT'] ?? '60000', 10),
+    openclawGatewayUrl: process.env['OPENCLAW_GATEWAY_URL'] ?? 'http://127.0.0.1:18789',
+    openclawGatewayToken: process.env['OPENCLAW_GATEWAY_TOKEN'] ?? '',
+    llm: {
+      baseUrl: process.env['LLM_BASE_URL'] ?? 'http://127.0.0.1:20128/v1',
+      apiKey: process.env['LLM_API_KEY'] ?? '',
+      model: process.env['LLM_MODEL'] ?? 'kr/claude-sonnet-4.6',
+    },
+    telegram: {
+      botToken: process.env['TELEGRAM_BOT_TOKEN'] ?? '',
+      chatId: process.env['TELEGRAM_CHAT_ID'] ?? '',
+    },
+  }
+  return _config
 }
 
-export const config: AppConfig = {
-  port: parseInt(process.env['PORT'] ?? '3001', 10),
-  llm: {
-    baseUrl: process.env['LLM_BASE_URL'] ?? 'http://127.0.0.1:20128/v1',
-    apiKey: process.env['LLM_API_KEY'] ?? '',
-    model: process.env['LLM_MODEL'] ?? 'kr/claude-sonnet-4.6',
+export const config: AppConfig = new Proxy({} as AppConfig, {
+  get(_target, prop) {
+    return getConfig()[prop as keyof AppConfig]
   },
-  telegram: {
-    botToken: process.env['TELEGRAM_BOT_TOKEN'] ?? '',
-    chatId: process.env['TELEGRAM_CHAT_ID'] ?? '',
-  },
-}
+})

@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify'
 import { getAllTools, getToolById, updateToolStatus } from '../db/repositories/tools.js'
 import { wsManager } from '../services/websocket.js'
 import { notificationService } from '../services/index.js'
+import { executionManager } from '../services/execution-manager.js'
 import type { ApiResponse, Tool } from '@remote-app/shared'
 
 interface UpdateStatusBody {
@@ -70,6 +71,26 @@ export async function toolRoutes(fastify: FastifyInstance): Promise<void> {
       }
 
       return reply.code(200).send({ success: true, data: updated })
+    }
+  )
+
+  // GET /api/tools/:id/health — Check tool executor health
+  fastify.get<{ Params: ToolParams; Reply: ApiResponse<{ healthy: boolean }> }>(
+    '/api/tools/:id/health',
+    async (req, reply) => {
+      const { id } = req.params
+      const tool = getToolById(id)
+      if (!tool) {
+        return reply.code(404).send({ success: false, error: 'Tool not found' })
+      }
+      const healthResults = await executionManager.checkAllHealth()
+      const healthy = healthResults[id] ?? false
+      const newStatus = healthy ? 'idle' : 'offline'
+      if (tool.status !== 'running') {
+        updateToolStatus(id, newStatus)
+        wsManager.broadcast('tool:status_changed', { toolId: id, oldStatus: tool.status, newStatus })
+      }
+      return reply.code(200).send({ success: true, data: { healthy } })
     }
   )
 }

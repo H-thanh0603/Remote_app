@@ -7,9 +7,10 @@ import { toolRoutes } from './routes/tools.js'
 import { taskRoutes } from './routes/tasks.js'
 import { healthRoutes } from './routes/health.js'
 import { wsManager } from './services/websocket.js'
-import { getAllTools } from './db/repositories/tools.js'
+import { getAllTools, updateToolStatus } from './db/repositories/tools.js'
 import { getRecentTasks } from './db/repositories/tasks.js'
 import { notificationRoutes } from './routes/notifications.js'
+import { executionManager } from './services/execution-manager.js'
 import './services/index.js'
 
 const server = Fastify({
@@ -81,6 +82,31 @@ const start = async (): Promise<void> => {
     // Start heartbeat
     wsManager.startHeartbeat(() => getAllTools())
     console.log('💓 WebSocket heartbeat started (30s interval)')
+
+    // Startup health check for all tool executors
+    console.log('🔍 Checking tool executor health...')
+    const healthResults = await executionManager.checkAllHealth()
+    for (const [toolId, healthy] of Object.entries(healthResults)) {
+      const status = healthy ? 'idle' : 'offline'
+      updateToolStatus(toolId, status)
+      console.log(`  ${healthy ? '✅' : '❌'} ${toolId}: ${status}`)
+    }
+
+    // Periodic health check every 60 seconds
+    setInterval(async () => {
+      const results = await executionManager.checkAllHealth()
+      for (const [toolId, healthy] of Object.entries(results)) {
+        const tools = getAllTools()
+        const tool = tools.find(t => t.id === toolId)
+        if (tool && tool.status !== 'running') {
+          const newStatus = healthy ? 'idle' : 'offline'
+          if (tool.status !== newStatus) {
+            updateToolStatus(toolId, newStatus)
+            wsManager.broadcast('tool:status_changed', { toolId, oldStatus: tool.status, newStatus })
+          }
+        }
+      }
+    }, 60000)
   } catch (err) {
     server.log.error(err)
     process.exit(1)
