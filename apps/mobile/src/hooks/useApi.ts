@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { api } from '../services/api';
-import type { Tool } from '@remote-app/shared';
+import type { Tool, Task } from '@remote-app/shared';
 
 export function useApi() {
   const [loading, setLoading] = useState(false);
@@ -14,6 +14,20 @@ export function useApi() {
       return data.tools ?? [];
     } catch (e) {
       setError('Failed to fetch tools');
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const fetchTasks = useCallback(async (): Promise<Task[]> => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await api.getTasks();
+      return data.tasks ?? [];
+    } catch (e) {
+      setError('Failed to fetch tasks');
       return [];
     } finally {
       setLoading(false);
@@ -46,5 +60,18 @@ export function useApi() {
     }
   }, []);
 
-  return { loading, error, fetchTools, createTask, confirmTask };
+  const cancelTask = useCallback(async (taskId: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      return await api.cancelTask(taskId);
+    } catch (e) {
+      setError('Failed to cancel task');
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  return { loading, error, fetchTools, fetchTasks, createTask, confirmTask, cancelTask };
 }
