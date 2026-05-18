@@ -169,7 +169,7 @@ export function SettingsScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView edges={['top', 'bottom']} style={{ backgroundColor: theme.colors.background }}>
+      <SafeAreaView edges={['top', 'bottom']}>
         <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={theme.colors.primary} />
@@ -181,7 +181,7 @@ export function SettingsScreen() {
   }
 
   return (
-    <SafeAreaView edges={['top', 'bottom']} style={{ backgroundColor: theme.colors.background }}>
+    <SafeAreaView edges={['top', 'bottom']}>
       <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
         <Text style={[styles.headerTitle, { color: theme.colors.text }]}>⚙️ Settings</Text>

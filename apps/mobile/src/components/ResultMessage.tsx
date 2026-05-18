@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Clipboard } from 'react-native';
 import { useTheme } from '../theme';
 
 interface ResultMessageProps {
@@ -20,8 +20,6 @@ export function ResultMessage({ content, toolName, duration, tokensUsed }: Resul
 
   const handleCopy = async () => {
     try {
-      // Use Clipboard from @react-native-clipboard/clipboard if available, fallback gracefully
-      const { default: Clipboard } = await import('@react-native-clipboard/clipboard');
       Clipboard.setString(content);
     } catch {
       // Clipboard not available — silent fail

@@ -19,6 +19,7 @@ interface StatusScreenProps {
 }
 
 function PulseDot({ active }: { active: boolean }) {
+  const { theme } = useTheme();
   const scale = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {

@@ -29,7 +29,7 @@ export function BarChart({ data }: BarChartProps) {
       {data.map((item, index) => (
         <View key={item.date} style={styles.barWrapper}>
           <Text style={[styles.value, { color: theme.colors.textSecondary }]}>
-            {(item.count ?? 0) > 0 ? item.count : ''}
+            {(data[index]?.count ?? 0) > 0 ? data[index]?.count : ''}
           </Text>
           <View style={[styles.barBg, { backgroundColor: theme.colors.border }]}>
             <Animated.View
@@ -37,7 +37,7 @@ export function BarChart({ data }: BarChartProps) {
                 styles.bar,
                 {
                   backgroundColor: theme.colors.primary,
-                  height: anims[index].interpolate({
+                  height: (anims[index] ?? new Animated.Value(0)).interpolate({
                     inputRange: [0, 1],
                     outputRange: ['0%', '100%'],
                   }),

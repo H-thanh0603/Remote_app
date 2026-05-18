@@ -59,19 +59,19 @@ function getDateRange(filter: DateFilter): { from?: string; to?: string } {
   return {};
 }
 
+export function HistoryScreen() {
+  const { theme } = useTheme();
+  const insets = useSafeAreaInsets();
+
   function statusColor(status: string): string {
     switch (status) {
       case 'completed': return theme.colors.success;
       case 'failed': return theme.colors.error;
       case 'running': return theme.colors.primary;
-      case 'cancelled': return theme.colors.textMuted;
+      case 'cancelled': return (theme.colors as any).textMuted ?? theme.colors.textSecondary;
       default: return theme.colors.textSecondary;
     }
   }
-
-export function HistoryScreen() {
-  const { theme } = useTheme();
-  const insets = useSafeAreaInsets();
   const { searchTasks, getTaskStats } = useApi();
 
   const [tasks, setTasks] = useState<SharedTask[]>([]);
