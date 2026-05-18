@@ -4,6 +4,7 @@ import { wsManager } from '../services/websocket.js'
 import { notificationService } from '../services/index.js'
 import { executionManager } from '../services/execution-manager.js'
 import type { ApiResponse, Tool } from '@remote-app/shared'
+import { Errors } from '../utils/errors.js'
 
 interface UpdateStatusBody {
   status: string
@@ -25,9 +26,7 @@ export async function toolRoutes(fastify: FastifyInstance): Promise<void> {
     '/api/tools/:id',
     async (req, reply) => {
       const tool = getToolById(req.params.id)
-      if (!tool) {
-        return reply.code(404).send({ success: false, error: 'Tool not found' })
-      }
+      if (!tool) throw Errors.NOT_FOUND('Tool not found')
       return reply.code(200).send({ success: true, data: tool })
     }
   )
@@ -39,22 +38,15 @@ export async function toolRoutes(fastify: FastifyInstance): Promise<void> {
       const { id } = req.params
       const { status } = req.body
 
-      if (!status) {
-        return reply.code(400).send({ success: false, error: 'status is required' })
-      }
+      if (!status) throw Errors.VALIDATION_ERROR('status is required')
 
       const validStatuses = ['running', 'idle', 'error', 'offline']
       if (!validStatuses.includes(status)) {
-        return reply.code(400).send({
-          success: false,
-          error: `Invalid status. Must be one of: ${validStatuses.join(', ')}`,
-        })
+        throw Errors.VALIDATION_ERROR(`Invalid status. Must be one of: ${validStatuses.join(', ')}`)
       }
 
       const tool = getToolById(id)
-      if (!tool) {
-        return reply.code(404).send({ success: false, error: 'Tool not found' })
-      }
+      if (!tool) throw Errors.NOT_FOUND('Tool not found')
 
       const oldStatus = tool.status
       updateToolStatus(id, status)
@@ -80,9 +72,7 @@ export async function toolRoutes(fastify: FastifyInstance): Promise<void> {
     async (req, reply) => {
       const { id } = req.params
       const tool = getToolById(id)
-      if (!tool) {
-        return reply.code(404).send({ success: false, error: 'Tool not found' })
-      }
+      if (!tool) throw Errors.NOT_FOUND('Tool not found')
       const healthResults = await executionManager.checkAllHealth()
       const healthy = healthResults[id] ?? false
       const newStatus = healthy ? 'idle' : 'offline'

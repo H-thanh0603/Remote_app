@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify'
+import { Errors } from '../utils/errors.js'
 import {
   createTask,
   getTaskById,
@@ -35,13 +36,8 @@ export async function taskRoutes(fastify: FastifyInstance): Promise<void> {
     async (req, reply) => {
       const { prompt } = req.body
 
-      if (!prompt || prompt.trim().length === 0) {
-        return reply.code(400).send({ success: false, error: 'prompt is required' })
-      }
-
-      if (prompt.length > 2000) {
-        return reply.code(400).send({ success: false, error: 'prompt too long (max 2000 chars)' })
-      }
+      if (!prompt || prompt.trim().length === 0) throw Errors.VALIDATION_ERROR('prompt is required')
+      if (prompt.length > 2000) throw Errors.VALIDATION_ERROR('prompt too long (max 2000 chars)')
 
       // Get routing suggestion (LLM-based with keyword fallback)
       const suggestion = await routeTask(prompt.trim())
@@ -68,9 +64,7 @@ export async function taskRoutes(fastify: FastifyInstance): Promise<void> {
     '/api/tasks',
     async (req, reply) => {
       const limit = Math.min(parseInt(req.query.limit ?? '20', 10), 100)
-      if (isNaN(limit) || limit < 1) {
-        return reply.code(400).send({ success: false, error: 'Invalid limit' })
-      }
+      if (isNaN(limit) || limit < 1) throw Errors.VALIDATION_ERROR('Invalid limit')
       const tasks = getRecentTasks(limit)
       return reply.code(200).send({ success: true, data: tasks })
     }
@@ -81,9 +75,7 @@ export async function taskRoutes(fastify: FastifyInstance): Promise<void> {
     '/api/tasks/:id',
     async (req, reply) => {
       const task = getTaskById(req.params.id)
-      if (!task) {
-        return reply.code(404).send({ success: false, error: 'Task not found' })
-      }
+      if (!task) throw Errors.NOT_FOUND('Task not found')
       return reply.code(200).send({ success: true, data: task })
     }
   )
@@ -95,18 +87,12 @@ export async function taskRoutes(fastify: FastifyInstance): Promise<void> {
       const { id } = req.params
       const { toolId } = req.body
 
-      if (!toolId) {
-        return reply.code(400).send({ success: false, error: 'toolId is required' })
-      }
+      if (!toolId) throw Errors.VALIDATION_ERROR('toolId is required')
 
       const task = getTaskById(id)
-      if (!task) {
-        return reply.code(404).send({ success: false, error: 'Task not found' })
-      }
+      if (!task) throw Errors.NOT_FOUND('Task not found')
 
-      if (task.status === 'cancelled') {
-        return reply.code(400).send({ success: false, error: 'Cannot confirm a cancelled task' })
-      }
+      if (task.status === 'cancelled') throw Errors.VALIDATION_ERROR('Cannot confirm a cancelled task')
 
       updateTaskStatus(id, 'confirmed')
 
@@ -138,12 +124,10 @@ export async function taskRoutes(fastify: FastifyInstance): Promise<void> {
       const { id } = req.params
       const task = getTaskById(id)
 
-      if (!task) {
-        return reply.code(404).send({ success: false, error: 'Task not found' })
-      }
+      if (!task) throw Errors.NOT_FOUND('Task not found')
 
       if (['completed', 'failed'].includes(task.status)) {
-        return reply.code(400).send({ success: false, error: 'Cannot cancel a completed or failed task' })
+        throw Errors.VALIDATION_ERROR('Cannot cancel a completed or failed task')
       }
 
       updateTaskStatus(id, 'cancelled')

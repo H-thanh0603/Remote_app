@@ -12,6 +12,7 @@ import { getRecentTasks } from './db/repositories/tasks.js'
 import { notificationRoutes } from './routes/notifications.js'
 import { settingsRoutes } from './routes/settings.js'
 import { executionManager } from './services/execution-manager.js'
+import { errorHandler } from './middleware/error-handler.js'
 
 const server = Fastify({
   logger: true,
@@ -53,14 +54,7 @@ server.register(async function (fastify) {
 })
 
 // Global error handler
-server.setErrorHandler((error, _req, reply) => {
-  server.log.error(error)
-  const statusCode = error.statusCode ?? 500
-  reply.code(statusCode).send({
-    success: false,
-    error: statusCode === 500 ? 'Internal server error' : error.message,
-  })
-})
+server.setErrorHandler(errorHandler)
 
 // 404 handler
 server.setNotFoundHandler((_req, reply) => {
