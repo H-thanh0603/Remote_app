@@ -1,13 +1,6 @@
 import React, { useState } from 'react';
-import {
-  View,
-  TextInput,
-  TouchableOpacity,
-  Text,
-  StyleSheet,
-  ActivityIndicator,
-} from 'react-native';
-import { theme } from '../theme';
+import { View, TextInput, TouchableOpacity, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { useTheme } from '../theme';
 
 interface Props {
   onSend: (text: string) => void;
@@ -16,6 +9,7 @@ interface Props {
 }
 
 export function ChatInput({ onSend, loading = false, disabled = false }: Props) {
+  const { theme } = useTheme();
   const [text, setText] = useState('');
 
   const handleSend = () => {
@@ -25,10 +19,19 @@ export function ChatInput({ onSend, loading = false, disabled = false }: Props) 
     setText('');
   };
 
+  const canSend = !!text.trim() && !loading && !disabled;
+
   return (
-    <View style={styles.container}>
+    <View style={[
+      styles.container,
+      { backgroundColor: theme.colors.surface, borderTopColor: theme.colors.border },
+      theme.shadows.sm,
+    ]}>
       <TextInput
-        style={styles.input}
+        style={[
+          styles.input,
+          { backgroundColor: theme.colors.surfaceLight, color: theme.colors.text },
+        ]}
         value={text}
         onChangeText={setText}
         placeholder="Mô tả task của bạn..."
@@ -39,17 +42,19 @@ export function ChatInput({ onSend, loading = false, disabled = false }: Props) 
         onSubmitEditing={handleSend}
       />
       <TouchableOpacity
-        style={[styles.sendButton, (!text.trim() || loading || disabled) && styles.sendButtonDisabled]}
+        style={[
+          styles.sendButton,
+          { backgroundColor: canSend ? theme.colors.primary : theme.colors.surfaceLight },
+        ]}
         onPress={handleSend}
-        disabled={!text.trim() || loading || disabled}
+        disabled={!canSend}
         accessibilityLabel="Send message"
         accessibilityRole="button"
       >
-        {loading ? (
-          <ActivityIndicator size="small" color={theme.colors.text} />
-        ) : (
-          <Text style={styles.sendIcon}>➤</Text>
-        )}
+        {loading
+          ? <ActivityIndicator size="small" color={theme.colors.text} />
+          : <Text style={[styles.sendIcon, { color: canSend ? '#fff' : theme.colors.textSecondary }]}>➤</Text>
+        }
       </TouchableOpacity>
     </View>
   );
@@ -59,35 +64,24 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    padding: theme.spacing.md,
-    backgroundColor: theme.colors.surface,
+    padding: 12,
     borderTopWidth: 1,
-    borderTopColor: theme.colors.surfaceLight,
   },
   input: {
     flex: 1,
-    backgroundColor: theme.colors.surfaceLight,
-    borderRadius: theme.borderRadius.lg,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
-    color: theme.colors.text,
-    fontSize: theme.fontSize.md,
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    fontSize: 14,
     maxHeight: 120,
-    marginRight: theme.spacing.sm,
+    marginRight: 8,
   },
   sendButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: theme.colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  sendButtonDisabled: {
-    backgroundColor: theme.colors.surfaceLight,
-  },
-  sendIcon: {
-    color: theme.colors.text,
-    fontSize: 18,
-  },
+  sendIcon: { fontSize: 18 },
 });

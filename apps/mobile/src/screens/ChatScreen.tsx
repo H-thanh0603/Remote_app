@@ -9,7 +9,7 @@ import {
   Animated,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { theme } from '../theme';
+import { useTheme } from '../theme';
 import { ChatInput } from '../components/ChatInput';
 import { ChatMessage } from '../components/ChatMessage';
 import { RoutingSuggestion } from '../components/RoutingSuggestion';
@@ -33,6 +33,7 @@ interface ChatMsg {
 }
 
 export function ChatScreen() {
+  const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const [messages, setMessages] = useState<ChatMsg[]>([
     {
@@ -121,6 +122,19 @@ export function ChatScreen() {
       addMessage({ type: 'error', content: '❌ Không thể kết nối server. Vui lòng thử lại.', timestamp: new Date().toISOString() });
       return;
     }
+
+    // Auto-confirmed: skip suggestion card, go straight to execution
+    if (result.autoConfirmed && result.task?.id) {
+      setActiveTaskId(result.task.id);
+      setProgressInfo({ toolName: result.suggestion?.toolId ?? 'AI Tool' });
+      addMessage({
+        type: 'system',
+        content: `⚡ Auto-routed to ${result.suggestion?.toolId ?? 'AI Tool'} (confidence: ${Math.round((result.suggestion?.confidence ?? 1) * 100)}%)`,
+        timestamp: new Date().toISOString(),
+      });
+      return;
+    }
+
     if (result.suggestion) {
       setPendingTaskId(result.task?.id ?? null);
       setPendingSuggestion(result.suggestion);
@@ -165,11 +179,11 @@ export function ChatScreen() {
   }, [activeTaskId, cancelTask, addMessage]);
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.colors.background }]}>
       <Header title="AI Command Center" subtitle={connected ? '🟢 Connected' : '🔴 Disconnected'} />
 
       {/* Connection banner */}
-      <Animated.View style={[styles.banner, { opacity: bannerOpacity }]}>
+      <Animated.View style={[styles.banner, { opacity: bannerOpacity, backgroundColor: theme.colors.error }]}>
         <Text style={styles.bannerText}>
           {reconnecting ? '🔄 Reconnecting...' : '⚠️ Connection lost'}
         </Text>
@@ -177,8 +191,8 @@ export function ChatScreen() {
 
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+        behavior="padding"
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 60}
       >
         <ScrollView
           ref={scrollRef}
@@ -228,17 +242,16 @@ export function ChatScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.background },
+  container: { flex: 1 },
   flex: { flex: 1 },
-  listContent: { paddingVertical: theme.spacing.md },
+  listContent: { paddingVertical: 16 },
   banner: {
-    backgroundColor: theme.colors.error,
     paddingVertical: 6,
     alignItems: 'center',
   },
   bannerText: {
     color: '#fff',
-    fontSize: theme.fontSize.sm,
+    fontSize: 12,
     fontWeight: '600',
   },
 });

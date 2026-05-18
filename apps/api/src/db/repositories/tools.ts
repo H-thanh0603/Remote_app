@@ -43,6 +43,58 @@ export function updateToolStatus(id: string, status: string): void {
   `).run(status, id)
 }
 
+export function getToolStats(toolId: string) {
+  const db = getDb()
+
+  const totalTasks = (db.prepare('SELECT COUNT(*) as count FROM tasks WHERE tool_id = ?').get(toolId) as any)?.count ?? 0
+  const completedTasks = (db.prepare("SELECT COUNT(*) as count FROM tasks WHERE tool_id = ? AND status = 'completed'").get(toolId) as any)?.count ?? 0
+  const failedTasks = (db.prepare("SELECT COUNT(*) as count FROM tasks WHERE tool_id = ? AND status = 'failed'").get(toolId) as any)?.count ?? 0
+  const successRate = totalTasks > 0 ? completedTasks / totalTasks : 0
+
+  const avgDurationRow = db.prepare("SELECT AVG(duration_ms) as avg FROM tasks WHERE tool_id = ? AND status = 'completed' AND duration_ms IS NOT NULL").get(toolId) as any
+  const avgDuration = avgDurationRow?.avg ?? 0
+
+  const totalTokensRow = db.prepare('SELECT SUM(tokens_used) as total FROM tasks WHERE tool_id = ? AND tokens_used IS NOT NULL').get(toolId) as any
+  const totalTokens = totalTokensRow?.total ?? 0
+
+  const recentTasks = db.prepare('SELECT * FROM tasks WHERE tool_id = ? ORDER BY created_at DESC LIMIT 10').all(toolId) as any[]
+
+  // Last 7 days usage
+  const usageByDay = db.prepare(`
+    SELECT date(created_at) as date, COUNT(*) as count
+    FROM tasks
+    WHERE tool_id = ? AND created_at >= date('now', '-6 days')
+    GROUP BY date(created_at)
+    ORDER BY date ASC
+  `).all(toolId) as { date: string; count: number }[]
+
+  // Fill missing days
+  const filledUsage: { date: string; count: number }[] = []
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date()
+    d.setDate(d.getDate() - i)
+    const dateStr = d.toISOString().slice(0, 10)
+    const found = usageByDay.find(u => u.date === dateStr)
+    filledUsage.push({ date: dateStr, count: found?.count ?? 0 })
+  }
+
+  return {
+    totalTasks,
+    completedTasks,
+    failedTasks,
+    successRate,
+    avgDuration,
+    totalTokens,
+    recentTasks: recentTasks.map(t => ({
+      id: t.id,
+      prompt: t.prompt,
+      status: t.status,
+      createdAt: t.created_at,
+    })),
+    usageByDay: filledUsage,
+  }
+}
+
 function parseToolRow(row: Record<string, unknown>): Tool {
   return {
     id: row.id as string,
