@@ -7,6 +7,7 @@ import { Text } from 'react-native';
 import { ChatScreen } from './src/screens/ChatScreen';
 import { StatusScreen } from './src/screens/StatusScreen';
 import { HistoryScreen } from './src/screens/HistoryScreen';
+import { SettingsScreen } from './src/screens/SettingsScreen';
 import { theme } from './src/theme';
 
 const Tab = createBottomTabNavigator();
@@ -55,6 +56,16 @@ export default function App() {
               tabBarLabel: 'History',
               tabBarIcon: ({ color }) => (
                 <Text style={{ fontSize: 20, color }}>📋</Text>
+              ),
+            }}
+          />
+          <Tab.Screen
+            name="Settings"
+            component={SettingsScreen}
+            options={{
+              tabBarLabel: 'Settings',
+              tabBarIcon: ({ color }) => (
+                <Text style={{ fontSize: 20, color }}>⚙️</Text>
               ),
             }}
           />

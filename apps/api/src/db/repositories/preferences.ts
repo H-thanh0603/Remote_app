@@ -6,6 +6,16 @@ export function getPreference(key: string): string | null {
   return row?.value ?? null
 }
 
+export function getAllPreferences(): Record<string, string> {
+  const db = getDb()
+  const rows = db.prepare('SELECT key, value FROM user_preferences').all() as { key: string; value: string }[]
+  const result: Record<string, string> = {}
+  for (const row of rows) {
+    result[row.key] = row.value
+  }
+  return result
+}
+
 export function setPreference(key: string, value: string): void {
   const db = getDb()
   db.prepare(`

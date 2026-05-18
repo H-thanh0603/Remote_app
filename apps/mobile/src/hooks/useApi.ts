@@ -1,6 +1,19 @@
 import { useState, useCallback } from 'react';
 import { api } from '../services/api';
-import type { Tool, Task } from '@remote-app/shared';
+import type { Tool, Task, RoutingSuggestion } from '@remote-app/shared';
+
+interface CreateTaskResponse {
+  task: Task;
+  suggestion: RoutingSuggestion;
+}
+
+interface ToolsResponse {
+  tools: Tool[];
+}
+
+interface TasksResponse {
+  tasks: Task[];
+}
 
 export function useApi() {
   const [loading, setLoading] = useState(false);
@@ -10,9 +23,9 @@ export function useApi() {
     setLoading(true);
     setError(null);
     try {
-      const data = await api.getTools();
-      return data.tools ?? [];
-    } catch (e) {
+      const data = await api.getTools() as { success: boolean; data?: ToolsResponse };
+      return data.data?.tools ?? [];
+    } catch {
       setError('Failed to fetch tools');
       return [];
     } finally {
@@ -24,9 +37,9 @@ export function useApi() {
     setLoading(true);
     setError(null);
     try {
-      const data = await api.getTasks();
-      return data.tasks ?? [];
-    } catch (e) {
+      const data = await api.getTasks() as { success: boolean; data?: TasksResponse };
+      return data.data?.tasks ?? [];
+    } catch {
       setError('Failed to fetch tasks');
       return [];
     } finally {
@@ -34,12 +47,13 @@ export function useApi() {
     }
   }, []);
 
-  const createTask = useCallback(async (prompt: string) => {
+  const createTask = useCallback(async (prompt: string): Promise<CreateTaskResponse | null> => {
     setLoading(true);
     setError(null);
     try {
-      return await api.createTask(prompt);
-    } catch (e) {
+      const res = await api.createTask(prompt) as { success: boolean; data?: CreateTaskResponse };
+      return res.data ?? null;
+    } catch {
       setError('Failed to create task');
       return null;
     } finally {
@@ -52,7 +66,7 @@ export function useApi() {
     setError(null);
     try {
       return await api.confirmTask(taskId, toolId);
-    } catch (e) {
+    } catch {
       setError('Failed to confirm task');
       return null;
     } finally {
@@ -65,7 +79,7 @@ export function useApi() {
     setError(null);
     try {
       return await api.cancelTask(taskId);
-    } catch (e) {
+    } catch {
       setError('Failed to cancel task');
       return null;
     } finally {

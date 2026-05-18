@@ -17,10 +17,16 @@ export class TelegramService {
   private lastSentAt = 0
   private readonly minIntervalMs = 1000 // max 1 msg/sec
 
-  constructor(config: { botToken: string; chatId: string }) {
-    this.botToken = config.botToken
-    this.chatId = config.chatId
-    this.enabled = Boolean(config.botToken && config.chatId)
+  constructor(botTokenOrConfig: string | { botToken: string; chatId: string }) {
+    if (typeof botTokenOrConfig === 'string') {
+      this.botToken = botTokenOrConfig
+      this.chatId = ''
+      this.enabled = Boolean(botTokenOrConfig)
+    } else {
+      this.botToken = botTokenOrConfig.botToken
+      this.chatId = botTokenOrConfig.chatId
+      this.enabled = Boolean(botTokenOrConfig.botToken && botTokenOrConfig.chatId)
+    }
   }
 
   isConfigured(): boolean {
@@ -34,6 +40,17 @@ export class TelegramService {
       await new Promise((r) => setTimeout(r, this.minIntervalMs - elapsed))
     }
     this.lastSentAt = Date.now()
+  }
+
+  async validateConnection(): Promise<boolean> {
+    try {
+      const url = `https://api.telegram.org/bot${this.botToken}/getMe`
+      const res = await fetch(url)
+      const data = await res.json() as { ok: boolean }
+      return data.ok === true
+    } catch {
+      return false
+    }
   }
 
   async sendMessage(text: string, parseMode: 'HTML' | 'Markdown' = 'Markdown'): Promise<boolean> {

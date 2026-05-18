@@ -60,6 +60,15 @@ export class LlmService {
       clearTimeout(timeout)
     }
   }
+
+  async healthCheck(): Promise<boolean> {
+    try {
+      await this.chat([{ role: 'user', content: 'ping' }], { maxTokens: 5 })
+      return true
+    } catch {
+      return false
+    }
+  }
 }
 
 export const llmService = new LlmService()

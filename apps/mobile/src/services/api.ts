@@ -1,31 +1,52 @@
-const API_BASE = 'http://localhost:3001/api';
+import AsyncStorage from '@react-native-async-storage/async-storage'
+
+const DEFAULT_API_BASE = 'http://localhost:3001/api'
+
+async function getApiBase(): Promise<string> {
+  try {
+    const stored = await AsyncStorage.getItem('api_base_url')
+    return stored ?? DEFAULT_API_BASE
+  } catch {
+    return DEFAULT_API_BASE
+  }
+}
+
+export async function setApiBaseUrl(url: string): Promise<void> {
+  await AsyncStorage.setItem('api_base_url', url)
+}
+
+async function request<T>(path: string, options?: RequestInit): Promise<{ success: boolean; data?: T; error?: string }> {
+  const base = await getApiBase()
+  try {
+    const res = await fetch(`${base}${path}`, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options?.headers,
+      },
+    })
+    return await res.json()
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Network error' }
+  }
+}
 
 export const api = {
-  getTools: () => fetch(`${API_BASE}/tools`).then(r => r.json()),
-  getTool: (id: string) => fetch(`${API_BASE}/tools/${id}`).then(r => r.json()),
+  get: <T>(path: string) => request<T>(path),
+  post: <T>(path: string, body: unknown) => request<T>(path, { method: 'POST', body: JSON.stringify(body) }),
+  put: <T>(path: string, body?: unknown) => request<T>(path, { method: 'PUT', body: body ? JSON.stringify(body) : undefined }),
+
+  // Legacy methods
+  getTools: () => request('/tools'),
+  getTool: (id: string) => request(`/tools/${id}`),
   updateToolStatus: (id: string, status: string) =>
-    fetch(`${API_BASE}/tools/${id}/status`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status }),
-    }).then(r => r.json()),
+    request(`/tools/${id}/status`, { method: 'PUT', body: JSON.stringify({ status }) }),
   createTask: (prompt: string) =>
-    fetch(`${API_BASE}/tasks`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt }),
-    }).then(r => r.json()),
+    request('/tasks', { method: 'POST', body: JSON.stringify({ prompt }) }),
   confirmTask: (taskId: string, toolId: string) =>
-    fetch(`${API_BASE}/tasks/${taskId}/confirm`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ toolId }),
-    }).then(r => r.json()),
+    request(`/tasks/${taskId}/confirm`, { method: 'PUT', body: JSON.stringify({ toolId }) }),
   cancelTask: (taskId: string) =>
-    fetch(`${API_BASE}/tasks/${taskId}/cancel`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-    }).then(r => r.json()),
-  getTasks: () => fetch(`${API_BASE}/tasks`).then(r => r.json()),
-  getHealth: () => fetch(`${API_BASE}/health`).then(r => r.json()),
-};
+    request(`/tasks/${taskId}/cancel`, { method: 'PUT' }),
+  getTasks: () => request('/tasks'),
+  getHealth: () => request('/health'),
+}

@@ -10,8 +10,8 @@ import { wsManager } from './services/websocket.js'
 import { getAllTools, updateToolStatus } from './db/repositories/tools.js'
 import { getRecentTasks } from './db/repositories/tasks.js'
 import { notificationRoutes } from './routes/notifications.js'
+import { settingsRoutes } from './routes/settings.js'
 import { executionManager } from './services/execution-manager.js'
-import './services/index.js'
 
 const server = Fastify({
   logger: true,
@@ -29,6 +29,7 @@ await server.register(healthRoutes)
 await server.register(toolRoutes)
 await server.register(taskRoutes)
 await server.register(notificationRoutes)
+await server.register(settingsRoutes)
 
 // WebSocket endpoint
 server.register(async function (fastify) {
