@@ -46,6 +46,24 @@ export interface RoutingSuggestion {
   reason: string
 }
 
+export type WsEventType =
+  | 'tool:status_changed'
+  | 'task:created'
+  | 'task:routing_suggested'
+  | 'task:confirmed'
+  | 'task:started'
+  | 'task:progress'
+  | 'task:completed'
+  | 'task:failed'
+  | 'system:connected'
+  | 'system:heartbeat'
+
+export interface WsMessage {
+  type: WsEventType
+  data: unknown
+  timestamp: string
+}
+
 export interface WebSocketMessage {
   type: 'task_update' | 'tool_status' | 'ack' | 'error'
   payload: unknown

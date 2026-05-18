@@ -6,6 +6,7 @@ import {
   updateTaskStatus,
 } from '../db/repositories/tasks.js'
 import { routeTask } from '../services/router.js'
+import { wsManager } from '../services/websocket.js'
 import type { ApiResponse, Task } from '@remote-app/shared'
 
 interface CreateTaskBody {
@@ -44,6 +45,10 @@ export async function taskRoutes(fastify: FastifyInstance): Promise<void> {
 
       // Create task in DB
       const task = createTask(prompt.trim(), suggestion.toolId)
+
+      // Broadcast WS events
+      wsManager.broadcast('task:created', { task })
+      wsManager.broadcast('task:routing_suggested', { taskId: task.id, suggestion })
 
       return reply.code(201).send({
         success: true,
@@ -108,6 +113,10 @@ export async function taskRoutes(fastify: FastifyInstance): Promise<void> {
       db.prepare('UPDATE tasks SET confirmed_tool = ? WHERE id = ?').run(toolId, id)
 
       const updated = getTaskById(id)!
+
+      // Broadcast WS event
+      wsManager.broadcast('task:confirmed', { taskId: id, toolId })
+
       return reply.code(200).send({ success: true, data: updated })
     }
   )
@@ -129,6 +138,10 @@ export async function taskRoutes(fastify: FastifyInstance): Promise<void> {
 
       updateTaskStatus(id, 'cancelled')
       const updated = getTaskById(id)!
+
+      // Broadcast WS event
+      wsManager.broadcast('task:failed', { taskId: id, error: 'Task cancelled by user' })
+
       return reply.code(200).send({ success: true, data: updated })
     }
   )

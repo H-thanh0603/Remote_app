@@ -6,6 +6,9 @@ import { seedDatabase } from './db/seed.js'
 import { toolRoutes } from './routes/tools.js'
 import { taskRoutes } from './routes/tasks.js'
 import { healthRoutes } from './routes/health.js'
+import { wsManager } from './services/websocket.js'
+import { getAllTools } from './db/repositories/tools.js'
+import { getRecentTasks } from './db/repositories/tasks.js'
 
 const server = Fastify({
   logger: true,
@@ -26,15 +29,21 @@ await server.register(taskRoutes)
 // WebSocket endpoint
 server.register(async function (fastify) {
   fastify.get('/ws', { websocket: true }, (socket, _req) => {
-    socket.on('message', (message: Buffer) => {
-      const data = message.toString()
-      fastify.log.info(`WebSocket message: ${data}`)
-      socket.send(JSON.stringify({ type: 'ack', data }))
+    // Handle connection
+    wsManager.handleConnection(socket)
+
+    // Send initial state to new client
+    const clientId = Math.random().toString(36).slice(2, 10)
+    const tools = getAllTools()
+    const activeTasks = getRecentTasks(10)
+
+    wsManager.send(socket, 'system:connected', {
+      clientId,
+      connectedClients: wsManager.getClientCount(),
+      initialState: { tools, activeTasks },
     })
 
-    socket.on('close', () => {
-      fastify.log.info('WebSocket client disconnected')
-    })
+    fastify.log.info(`[WS] Client connected: ${clientId}. Total: ${wsManager.getClientCount()}`)
   })
 })
 
@@ -65,6 +74,10 @@ const start = async (): Promise<void> => {
     seedDatabase()
     await server.listen({ port: 3001, host: '0.0.0.0' })
     console.log('🚀 API server running on http://localhost:3001')
+
+    // Start heartbeat
+    wsManager.startHeartbeat(() => getAllTools())
+    console.log('💓 WebSocket heartbeat started (30s interval)')
   } catch (err) {
     server.log.error(err)
     process.exit(1)
