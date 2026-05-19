@@ -36,6 +36,14 @@ export const api = {
   post: <T>(path: string, body: unknown) => request<T>(path, { method: 'POST', body: JSON.stringify(body) }),
   put: <T>(path: string, body?: unknown) => request<T>(path, { method: 'PUT', body: body ? JSON.stringify(body) : undefined }),
 
+  // Brain
+  brainChat: (message: string, resetContext?: boolean) =>
+    request<{ message: string; plan?: any; toolsUsed: string[]; confidence: number; reasoning?: string }>(
+      '/brain/chat', { method: 'POST', body: JSON.stringify({ message, resetContext }) }
+    ),
+  brainStatus: () => request('/brain/status'),
+  brainReset: () => request('/brain/reset', { method: 'POST' }),
+
   // Legacy methods
   getTools: () => request('/tools'),
   getTool: (id: string) => request(`/tools/${id}`),
