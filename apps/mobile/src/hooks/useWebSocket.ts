@@ -27,6 +27,7 @@ export function useWebSocket() {
   const [messages, setMessages] = useState<WsMessage[]>([]);
   const [tools, setTools] = useState<Tool[]>([]);
   const [taskEvent, setTaskEvent] = useState<TaskEvent | null>(null);
+  const [lastEvent, setLastEvent] = useState<{ type: string; data?: unknown } | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -45,6 +46,7 @@ export function useWebSocket() {
         try {
           const msg: WsMessage = JSON.parse(event.data);
           setMessages(prev => [...prev.slice(-99), msg]);
+          setLastEvent({ type: msg.type, data: msg.payload });
 
           switch (msg.type) {
             case 'initial:state': {
@@ -133,5 +135,5 @@ export function useWebSocket() {
     };
   }, [connect]);
 
-  return { connected, reconnecting, messages, tools, taskEvent };
+  return { connected, reconnecting, messages, tools, taskEvent, lastEvent };
 }

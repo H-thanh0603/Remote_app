@@ -7,7 +7,7 @@ import {
   TextInput,
   ScrollView,
   Animated,
-  Dimensions,
+  useWindowDimensions,
   NativeSyntheticEvent,
   NativeScrollEvent,
 } from 'react-native';
@@ -15,7 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../../theme';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
 
 export const ONBOARDING_KEY = '@remote_app_onboarding_completed';
 
@@ -158,6 +158,7 @@ interface OnboardingScreenProps {
 export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
+  const { width: SCREEN_WIDTH } = useWindowDimensions();
   const scrollRef = useRef<ScrollView>(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [apiUrl, setApiUrl] = useState('http://localhost:3001');
